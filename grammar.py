@@ -11,7 +11,7 @@ class ExprNode:
         self.OpCode = opcode
         self.Content = content
 
-
+# 声明全局变量
 origin_x, origin_y = (0, 0)
 scale_x, scale_y = (1.0, 1.0)
 rot_rad = 0.0
@@ -182,63 +182,70 @@ def Hint(statment_type, op):
 
 
 def OriginStatment():
+    # 声明全局变量
     global origin_x, origin_y
     Hint("OriginStatment", 0)
     MatchToken(TokenType.ORIGIN)
     MatchToken(TokenType.IS)
     MatchToken(TokenType.L_BRACKET)
     x = Expression()
+    # 计算origin_x的值
     origin_x = CacuSyntaxTree(x)
     MatchToken(TokenType.COMMA)
     y = Expression()
+    # 计算origin_y的值
     origin_y = CacuSyntaxTree(y)
     MatchToken(TokenType.R_BRACKET)
     Hint("OriginStatment", 1)
-    # 语义嵌入
 
 
 def RotStatment():
+    # 声明全局变量
     global rot_rad
     Hint("RotStatment", 0)
     MatchToken(TokenType.ROT)
     MatchToken(TokenType.IS)
     angle = Expression()
+    # 计算rot_rad的值
     rot_rad = CacuSyntaxTree(angle)
     Hint("RotStatment", 1)
-    # 语义嵌入
 
 
 def ScaleStatment():
+    # 声明全局变量
     global scale_x, scale_y
     Hint("ScaleStatment", 0)
     MatchToken(TokenType.SCALE)
     MatchToken(TokenType.IS)
     MatchToken(TokenType.L_BRACKET)
     x = Expression()
-    scale_x = CacuSyntaxTree(x)
     MatchToken(TokenType.COMMA)
     y = Expression()
+    # 计算scale
+    scale_x = CacuSyntaxTree(x)
     scale_y = CacuSyntaxTree(y)
     MatchToken(TokenType.R_BRACKET)
     Hint("ScaleStatment", 1)
-    # 语义嵌入
 
 
 # 新增
 def TitleStatment():
+    # 声明全局变量
     global title_t
     Hint("TitleStatment", 0)
     MatchToken(TokenType.TITLE)
     MatchToken(TokenType.IS)
     MatchToken(TokenType.QUOTE)
     title = Expression()
+    # 直接获取titile
     title_t = title.Content
     MatchToken(TokenType.QUOTE)
     Hint("TitleStatment", 1)
-    # 语义嵌入
 
 
 def BgcolourStatment():
+    # 声明全局变量
+    global bg_color
     Hint("BgcolourStatment", 0)
     MatchToken(TokenType.BGCOLOUR)
     MatchToken(TokenType.IS)
@@ -251,12 +258,14 @@ def BgcolourStatment():
     MatchToken(TokenType.R_BRACKET)
     Hint("BgcolourStatment", 1)
 
+    # 计算bg_color并将其调整成适合matplotlib的格式
     bg_color = (CacuSyntaxTree(r), CacuSyntaxTree(g), CacuSyntaxTree(b))
     bg_color = CacuColor(bg_color)
     fig.set_facecolor(bg_color)
 
 
 def FgcolourStatment():
+    # 声明全局变量
     global dot_color
     Hint("FgcolourStatment", 0)
     MatchToken(TokenType.FGCOLOUR)
@@ -269,16 +278,18 @@ def FgcolourStatment():
     b = Expression()
     MatchToken(TokenType.R_BRACKET)
     Hint("FgcolourStatment", 1)
-    # 语义嵌入
+    # 计算dot_color并将其调整成适合matplotlib的格式
     dot_color = (CacuSyntaxTree(r), CacuSyntaxTree(g), CacuSyntaxTree(b))
     dot_color = CacuColor(dot_color)
 
 
 def ClearStatment():
+    # 声明全局变量
     global delete
     Hint("ClearStatment", 0)
     MatchToken(TokenType.CLEAR)
     f = token.lexeme  # 3.0，修改f=token为f=token.lexeme，得到True/False
+    # 直接进行字符串比较获得delete的值
     if f == 'TRUE':
         print(f)
         delete = True
@@ -286,11 +297,12 @@ def ClearStatment():
         delete = False
     MatchToken(TokenType.CONST_ID)
     Hint("ClearStatment", 1)
-    # 语义嵌入
 
 
 def ForStatment():
+    # 声明全局变量
     global temp, title_t, ax
+    # 打印此时的全局变量信息，起调试作用
     print(origin_x, origin_y, scale_x, scale_y, rot_rad, dot_color, delete)
     Hint("ForStatment", 0)
     MatchToken(TokenType.FOR)
@@ -302,32 +314,40 @@ def ForStatment():
     MatchToken(TokenType.STEP)
     step = Expression()
 
-    # get temp
+    # 计算start，end，step后生成temp对应的元组
     temp = GenerateT(CacuSyntaxTree(start), CacuSyntaxTree(end), CacuSyntaxTree(step))
 
     MatchToken(TokenType.DRAW)
     MatchToken(TokenType.L_BRACKET)
     x = Expression()
+    # 计算得到需要的x坐标（元组）
     x_data = CacuSyntaxTree(x, temp)
+    # 如果x是常量，需要将其转化成对应temp长度的元组
     if not isinstance(x_data, tuple):
         x_data = (x_data,) * len(temp)
     MatchToken(TokenType.COMMA)
     y = Expression()
+    # 计算得到需要的y坐标（元组）
     y_data = CacuSyntaxTree(y, temp)
+    # 如果y是常量，需要将其转化成对应temp长度的元组
     if not isinstance(y_data, tuple):
         y_data = (y_data,) * len(temp)
 
     MatchToken(TokenType.R_BRACKET)
 
+    # 绘图之前设置title，因为每次ax.clr后都会清空题目
     if title_t is not None:
         plt.title(title_t)
     if token.type == TokenType.SEMICO:
+        # 分号表示该循环是单层的
         print('single loop')
-        print(x_data)
-        print(y_data)
+        # print(x_data)
+        # print(y_data)
+        # 绘图前需要根据全局变量调整坐标
         x_data, y_data = Modify(x_data, y_data, origin_x, origin_y, scale_x, scale_y, rot_rad)
-        print(x_data)
-        print(y_data)
+        # print(x_data)
+        # print(y_data)
+        # 根据是否delete选择不同的绘图函数
         if delete:
             print('delete')
             ax.cla()
@@ -337,6 +357,7 @@ def ForStatment():
             singleLoopNoDelete(ax, list(x_data), list(y_data), dot_color)
     elif token.type == TokenType.COLON:  # 4.0，新增Doublefor处理
         print('double loop')
+        # 冒号表示双重循环
         MatchToken(TokenType.COLON)
         MatchToken(TokenType.FOR)
         MatchToken(TokenType.T)
@@ -347,6 +368,7 @@ def ForStatment():
         MatchToken(TokenType.STEP)
         step = Expression()
 
+        # 获得第二层循环中的temp，此时以及不会再用到第一层中的temp，所以可以直接覆盖
         temp = GenerateT(CacuSyntaxTree(start), CacuSyntaxTree(end), CacuSyntaxTree(step))
 
         MatchToken(TokenType.DRAW)
@@ -362,7 +384,9 @@ def ForStatment():
             y_data2 = (y_data2,) * len(temp)
         MatchToken(TokenType.R_BRACKET)
 
+        # 修改绘图数据
         x_data2, y_data2 = Modify(x_data2, y_data2, origin_x, origin_y, scale_x, scale_y, rot_rad)
+        # 根据是否delete选择不同的绘图函数
         if delete:
             print('delete')
             ax.cla()
@@ -372,7 +396,6 @@ def ForStatment():
             doubleLoopNoDelete(ax, list(x_data), list(y_data), list(x_data2), list(y_data2), dot_color)
 
     Hint("ForStatment", 1)
-    # 语义嵌入
 
 
 # def DoubleforStatment():
@@ -433,6 +456,7 @@ def Program():
         else:
             exit()
 
+    # 展示绘图结果
     plt.show()
 
 
