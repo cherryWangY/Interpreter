@@ -70,6 +70,8 @@ def CacuSyntaxTree(root, temp=None):
     if root.OpCode == TokenType.CONST_ID:
         if root.Content == "PI":
             return 3.1415926
+        if root.Content == "E":
+            return 2.71828
         else:
             return float(root.Content)
     # T 返回变量（元组类型）

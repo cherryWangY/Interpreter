@@ -58,11 +58,10 @@ token = None  # 当前记号
 tokens = None  # 记号流
 
 
-def FetchToken():
+def FetchToken():  # 迭代取出记号
     global token
     try:
         token = next(tokens)
-        # next(cpy_tokens)无法进入Doublefor，迭代完毕退出
         if TokenType.ERROR == token.type:
             SyntaxError("词法错误")
     except StopIteration:
@@ -70,12 +69,11 @@ def FetchToken():
         exit()
 
 
-def MatchToken(The_Token):
+def MatchToken(The_Token):  # 匹配记号
     if token.type == The_Token:
         FetchToken()
         return True
     else:
-        # if token.type!=TokenType.COLON:
         SyntaxError("语法错误")
         return False
 
@@ -84,25 +82,19 @@ def SyntaxError(err):  # 报错
     print(err)
 
 
-# 表达式
+## 表达式处理：Expression -> Term -> Factor -> Component -> Atom，递归下降
 def Atom():
+    global father_type
     if token.type == TokenType.CONST_ID or token.type == TokenType.T:
         leaf = MakeExprNode(token.type, token.lexeme)
         token_tmp = token.type
         MatchToken(token_tmp)
         return leaf
     elif token.type == TokenType.FUNC:
-        global father_type
         father_type = token.type
         token_tmp = token.type
-        token_fun = token.lexeme.lower()  # 3.0 修改token为token.lexeme.lower()，小写
+        token_fun = token.lexeme.lower()  # 小写
         # print(token_fun.lexeme)，大写
-        if token_fun in [FUNC.SIN, FUNC.COS, FUNC.TAN, FUNC.SQRT, FUNC.EXP, FUNC.LN]:
-            funct = [FUNC.SIN, FUNC.COS, FUNC.TAN, FUNC.SQRT, FUNC.EXP, FUNC.LN].index(
-                token_fun)  # 3.0，把词法内置数学函数改为语法自定义函数，方便语义操作
-            # print(funct)
-            functi = [FUNC.SIN, FUNC.COS, FUNC.TAN, FUNC.SQRT, FUNC.EXP, FUNC.LN][funct]  # 语义要的对象
-            # print(functi)
         MatchToken(token_tmp)
         MatchToken(TokenType.L_BRACKET)
         t = Expression()
@@ -119,8 +111,7 @@ def Atom():
         return leaf
 
 
-# 右递归实现    
-def Component():
+def Component():  # 乘方，右递归实现 
     left = Atom()
     if token.type == TokenType.POWER:
         token_tmp = token.type
@@ -132,7 +123,7 @@ def Component():
         return left
 
 
-def Factor(): 
+def Factor():  # 一元正负
     if token.type == TokenType.PLUS or token.type == TokenType.MINUS:
         token_tmp = token.type
         MatchToken(token_tmp)
@@ -149,7 +140,7 @@ def Factor():
         return left
 
 
-def Term():
+def Term():  # 二元乘除
     left = Factor()
     while token.type == TokenType.MUL or token.type == TokenType.DIV:
         token_tmp = token.type
@@ -161,8 +152,7 @@ def Term():
 
 father_type = None
 
-
-def Expression():
+def Expression():  # 二元加减
     left = Term()
     while token.type == TokenType.PLUS or token.type == TokenType.MINUS:
         token_tmp = token.type
@@ -170,18 +160,19 @@ def Expression():
         right = Term()
         left = MakeExprNode(token_tmp, left, right)
     if father_type != TokenType.FUNC and father_type != TokenType.L_BRACKET:  # 防止FUNC和()内部expression由于递归从而打印两遍
-        PrintSyntaxTree(left, 0)
+        PrintSyntaxTree(left, 0)  # 打印表达式语法树
     return left
 
 
-def Hint(statment_type, op):
+## 显示语句处理
+def Hint(statment_type, op):  # 提示进入退出
     if 0 == op:
         print("enter in %s" % statment_type)
     else:
         print("exit from %s" % statment_type)
 
 
-def OriginStatment():
+def OriginStatment():  # 坐标平移
     # 声明全局变量
     global origin_x, origin_y
     Hint("OriginStatment", 0)
@@ -199,19 +190,7 @@ def OriginStatment():
     Hint("OriginStatment", 1)
 
 
-def RotStatment():
-    # 声明全局变量
-    global rot_rad
-    Hint("RotStatment", 0)
-    MatchToken(TokenType.ROT)
-    MatchToken(TokenType.IS)
-    angle = Expression()
-    # 计算rot_rad的值
-    rot_rad = CacuSyntaxTree(angle)
-    Hint("RotStatment", 1)
-
-
-def ScaleStatment():
+def ScaleStatment():  # 比例设置
     # 声明全局变量
     global scale_x, scale_y
     Hint("ScaleStatment", 0)
@@ -228,8 +207,20 @@ def ScaleStatment():
     Hint("ScaleStatment", 1)
 
 
-# 新增
-def TitleStatment():
+def RotStatment():  # 角度旋转
+    # 声明全局变量
+    global rot_rad
+    Hint("RotStatment", 0)
+    MatchToken(TokenType.ROT)
+    MatchToken(TokenType.IS)
+    angle = Expression()
+    # 计算rot_rad的值
+    rot_rad = CacuSyntaxTree(angle)
+    Hint("RotStatment", 1)
+
+
+## 创新点
+def TitleStatment():  # 用户添加标题
     # 声明全局变量
     global title_t
     Hint("TitleStatment", 0)
@@ -237,13 +228,13 @@ def TitleStatment():
     MatchToken(TokenType.IS)
     MatchToken(TokenType.QUOTE)
     title = Expression()
-    # 直接获取titile
+    # 直接获取title
     title_t = title.Content
     MatchToken(TokenType.QUOTE)
     Hint("TitleStatment", 1)
 
 
-def BgcolourStatment():
+def BgcolourStatment():  # 用户规定背景色
     # 声明全局变量
     global bg_color
     Hint("BgcolourStatment", 0)
@@ -264,7 +255,7 @@ def BgcolourStatment():
     fig.set_facecolor(bg_color)
 
 
-def FgcolourStatment():
+def FgcolourStatment():  # 用户规定前景色
     # 声明全局变量
     global dot_color
     Hint("FgcolourStatment", 0)
@@ -283,12 +274,12 @@ def FgcolourStatment():
     dot_color = CacuColor(dot_color)
 
 
-def ClearStatment():
+def ClearStatment():  # 用户清除图形，动画效果
     # 声明全局变量
     global delete
     Hint("ClearStatment", 0)
     MatchToken(TokenType.CLEAR)
-    f = token.lexeme  # 3.0，修改f=token为f=token.lexeme，得到True/False
+    f = token.lexeme  # 得到True/False
     # 直接进行字符串比较获得delete的值
     if f == 'TRUE':
         print(f)
@@ -299,7 +290,7 @@ def ClearStatment():
     Hint("ClearStatment", 1)
 
 
-def ForStatment():
+def ForStatment():  #（单/双层嵌套）for-draw制图
     # 声明全局变量
     global temp, title_t, ax
     # 打印此时的全局变量信息，起调试作用
@@ -355,7 +346,7 @@ def ForStatment():
             singleLoopDelete(ax, list(x_data), list(y_data), dot_color, title_t)
         else:
             singleLoopNoDelete(ax, list(x_data), list(y_data), dot_color)
-    elif token.type == TokenType.COLON:  # 4.0，新增Doublefor处理
+    elif token.type == TokenType.COLON:  # Doublefor处理
         print('double loop')
         # 冒号表示双重循环
         MatchToken(TokenType.COLON)
@@ -398,27 +389,8 @@ def ForStatment():
     Hint("ForStatment", 1)
 
 
-# def DoubleforStatment():
-#     Hint("DoubleforStatment", 0)
-#     ForStatment()
-#     MatchToken(TokenType.COLON) 
-#     ForStatment()
-#     Hint("DoubleforStatment", 1)
-
-# def process_tokens(tokens):#列表方法
-#     tokens_list = list(tokens)
-#     for i, token in enumerate(tokens_list):
-#         if token.type == TokenType.COLON:
-#             # 在当前 token 后查找第一个匹配到 TokenType.SEMICO 的位置
-#             semico_index = next((index for index, t in enumerate(tokens_list[i+1:]) if t.type == TokenType.SEMICO), None)          
-#             if semico_index is not None:               
-#                 # 将迭代器中剩余元素加入列表
-#                 tokens_list.extend(tokens)
-#                 return True
-#         return False
-
-# 主程序              
-def Statment():
+## 主程序：main -> Parser -> Program -> Statment                
+def Statment():  # 判断语句类型
     if token.type == TokenType.ORIGIN:
         OriginStatment()
     elif token.type == TokenType.SCALE:
@@ -433,9 +405,6 @@ def Statment():
         FgcolourStatment()
     elif token.type == TokenType.CLEAR:
         ClearStatment()
-        # 列表方法，elif process_tokens(tokens):或
-    # 迭代器方法，elif token.type == TokenType.FOR and TokenType.COLON in cpy_tokens:
-    #     DoubleforStatment()
     elif token.type == TokenType.FOR:
         ForStatment()
     elif token.type == TokenType.SEMICO:  # 词法分析的一个小bug，以;分隔句子，如果注释末尾无; 则会把下一句也吞掉。所以给注释末尾加; 分号不会被吞掉，用来标识注释语句
@@ -449,8 +418,7 @@ def Program():
 
     while TokenType.NONTOKEN != token.type:
         Statment()
-        if MatchToken(TokenType.SEMICO):
-            # if MatchToken(TokenType.SEMICO) or MatchToken(TokenType.COLON):#不符合Doublefor文法（如画图嵌套画图也不会报错），但可按句解析
+        if MatchToken(TokenType.SEMICO):  # 用分号来分句
             i += 1
             print("第%d句翻译完毕\n" % i)
         else:
@@ -460,17 +428,16 @@ def Program():
     plt.show()
 
 
-def Parser(file_path):
-    global tokens, cpy_tokens
+def Parser(file_path): 
+    global tokens
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:  # utf-8：正确处理中文注释
             content = file.read()  # 读文件
         lexer = Lexer()
-        tokenList = lexer.lex(content)
-        tokens = iter(tokenList)  # 从词法分析器得到记号流，实际迭代
-        # cpy_tokens = iter(tokenList)#迭代器方法，用于Doublefor条件检查，不可行，MatchToken迭代完退出
+        tokenList = lexer.lex(content)  # 从词法分析器得到记号流
+        tokens = iter(tokenList)  # 列表转迭代器
         FetchToken()
-        return Program()
+        Program()
     except FileNotFoundError:
         print("打开源文件有误\n")
     finally:

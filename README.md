@@ -3,7 +3,7 @@
 词法设计
 ## `scanner.py`
 词法分析
-## `grammer.py`
+## `grammar.py`
 语法分析
 语义处理也嵌入在语法分析中
 ## `painter.py`
