@@ -194,11 +194,16 @@ def setAx(x_min, x_max, y_min, y_max, ax):
         y_min = ymin
     if ymax > y_max:
         y_max = ymax
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_max, y_min)
+
+    t = (x_min, x_max, y_min, y_max)
+    ax_min = min(t)
+    ax_max = max(t)
+
+    ax.set_xlim(ax_min, ax_max)
+    ax.set_ylim(ax_max, ax_min)
 
     # 隐藏坐标轴
-    # ax.axis('off')
+    ax.axis('off')
 
 
 # 不删除的单循环绘图
